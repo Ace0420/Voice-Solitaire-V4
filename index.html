@@ -5,117 +5,352 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Voice Solitaire</title>
 
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Voice-controlled solitaire game with accessibility features">
+  <meta name="theme-color" content="#1f2937">
+  
+  <!-- Icons - using simple data URIs since we don't have the actual icon files -->
+  <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" />
+  <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" />
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVm9pY2UgU29saXRhaXJlIiwic2hvcnRfbmFtZSI6IlNvbGl0YWlyZSIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMTExODI3IiwidGhlbWVfY29sb3IiOiIjMWYyOTM3IiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2UvcG5nO2Jhc2U2NCxpVkJPUncwS0dnb0FBQUFOU1VoRVVnQUFBQUVBQUFBQkNBWUFBQUFmRmNTSkFBQUFEVWxFUVZSNDJtTmtZUGhmRHdBQ2h3R0E2MGU2a2dBQUFBQkpSVTVFcmtKZ2dnPT0iLCJzaXplcyI6IjE5MngxOTIiLCJ0eXBlIjoiaW1hZ2UvcG5nIn1dfQ==" />
+
   <style>
+    /* CSS Variables for theme consistency */
+    :root {
+      --bg-primary: #111827;
+      --bg-secondary: #222;
+      --bg-tertiary: #1f2937;
+      --text-primary: #fff;
+      --text-secondary: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-blue-light: #60a5fa;
+      --accent-green: #10b981;
+      --bg-green: #065f46;
+      --accent-red: #f87171;
+      --bg-red: #7f1d1d;
+      --border-radius: 0.5em;
+      --shadow: 0 0 24px rgba(0,0,0,0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: sans-serif;
-      background: #111827;
-      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      line-height: 1.5;
     }
+
     .container {
-      max-width: 420px;
+      max-width: 480px;
       width: 100%;
-      margin-top: 3em;
+      margin: 2em auto;
       padding: 2em;
-      background: #222;
+      background: var(--bg-secondary);
       border-radius: 1em;
-      box-shadow: 0 0 24px #0007;
+      box-shadow: var(--shadow);
       transition: box-shadow 0.3s ease;
     }
+
     .container.listening {
-      box-shadow: 0 0 24px #3b82f6;
+      box-shadow: 0 0 32px var(--accent-blue);
       animation: pulse 2s infinite;
     }
+
     @keyframes pulse {
-      0% { box-shadow: 0 0 24px #3b82f6; }
-      50% { box-shadow: 0 0 36px #60a5fa; }
-      100% { box-shadow: 0 0 24px #3b82f6; }
+      0% { box-shadow: 0 0 32px var(--accent-blue); }
+      50% { box-shadow: 0 0 48px var(--accent-blue-light); }
+      100% { box-shadow: 0 0 32px var(--accent-blue); }
     }
-    .center { text-align: center; }
+
+    .center { 
+      text-align: center; 
+    }
+
+    h1 {
+      margin: 0 0 1em 0;
+      font-size: 2em;
+      font-weight: 600;
+    }
+
     .msg {
-      background: #1f2937;
-      padding: 1em;
-      border-radius: 0.5em;
+      background: var(--bg-tertiary);
+      padding: 1.25em;
+      border-radius: var(--border-radius);
       margin-bottom: 1em;
       font-size: 1.1em;
-      min-height: 3em;
+      min-height: 4em;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      word-wrap: break-word;
     }
-    .instructions {
-      color: #9ca3af;
-      font-size: 0.9em;
-      margin-top: 1em;
-      line-height: 1.4;
-    }
+
     .status {
-      background: #065f46;
-      color: #10b981;
-      padding: 0.5em 1em;
-      border-radius: 0.5em;
+      background: var(--bg-green);
+      color: var(--accent-green);
+      padding: 0.75em 1em;
+      border-radius: var(--border-radius);
       margin-bottom: 1em;
-      font-size: 0.9em;
+      font-size: 0.95em;
+      font-weight: 500;
     }
+
     .error {
-      background: #7f1d1d;
-      color: #f87171;
-      padding: 0.5em 1em;
-      border-radius: 0.5em;
+      background: var(--bg-red);
+      color: var(--accent-red);
+      padding: 0.75em 1em;
+      border-radius: var(--border-radius);
       margin-bottom: 1em;
-      font-size: 0.9em;
+      font-size: 0.95em;
+      font-weight: 500;
     }
+
     .click-prompt {
-      background: #1e40af;
-      color: #93c5fd;
-      padding: 1em;
-      border-radius: 0.5em;
-      margin-bottom: 1em;
+      background: linear-gradient(135deg, #1e40af, #3b82f6);
+      color: #fff;
+      padding: 1.25em;
+      border-radius: var(--border-radius);
+      margin-bottom: 1.5em;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: all 0.3s ease;
+      border: none;
+      font-size: 1em;
+      font-weight: 600;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
+
     .click-prompt:hover {
-      background: #1d4ed8;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
     }
-    @media (max-width: 480px) {
-      .container { 
-        padding: 1em; 
-        margin-top: 1em;
+
+    .click-prompt:active {
+      transform: translateY(0);
+    }
+
+    .instructions {
+      color: var(--text-secondary);
+      font-size: 0.9em;
+      margin-top: 1.5em;
+      line-height: 1.6;
+      background: rgba(255,255,255,0.03);
+      padding: 1.25em;
+      border-radius: var(--border-radius);
+    }
+
+    .instructions strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 0.75em;
+      font-size: 1em;
+    }
+
+    .command-list {
+      display: grid;
+      gap: 0.5em;
+      margin-top: 0.75em;
+    }
+
+    .command-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75em;
+    }
+
+    .command-name {
+      color: var(--accent-blue-light);
+      font-weight: 600;
+      min-width: 100px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+    }
+
+    .pwa-install {
+      background: var(--bg-tertiary);
+      border: 2px dashed var(--text-secondary);
+      padding: 1em;
+      border-radius: var(--border-radius);
+      margin-top: 1em;
+      font-size: 0.85em;
+      color: var(--text-secondary);
+      text-align: center;
+    }
+
+    .offline-indicator {
+      position: fixed;
+      top: 1em;
+      right: 1em;
+      background: var(--bg-green);
+      color: var(--accent-green);
+      padding: 0.5em 1em;
+      border-radius: var(--border-radius);
+      font-size: 0.8em;
+      z-index: 1000;
+      display: none;
+    }
+
+    .offline-indicator.show {
+      display: block;
+    }
+
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+      .container.listening {
+        animation: none;
       }
-      .msg { font-size: 1em; }
+      
+      .click-prompt:hover {
+        transform: none;
+      }
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 600px) {
+      .container { 
+        margin: 1em;
+        padding: 1.5em; 
+      }
+      
+      h1 {
+        font-size: 1.75em;
+      }
+      
+      .msg { 
+        font-size: 1em;
+        min-height: 3.5em;
+        padding: 1em;
+      }
+      
+      .instructions {
+        font-size: 0.85em;
+      }
+      
+      .command-name {
+        min-width: 80px;
+        font-size: 0.8em;
+      }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      .container {
+        border: 2px solid var(--text-primary);
+      }
+      
+      .msg, .status, .error {
+        border: 1px solid currentColor;
+      }
+    }
+
+    /* Focus styles for keyboard navigation */
+    .click-prompt:focus {
+      outline: 3px solid var(--accent-blue-light);
+      outline-offset: 2px;
     }
   </style>
 </head>
 <body>
+  <div class="offline-indicator" id="offline-indicator">
+    📱 Running offline
+  </div>
+
   <main class="container center" role="main" id="game-container">
     <h1>🎴 Voice Solitaire</h1>
     
     <div id="status-area"></div>
     
-    <div id="msg" class="msg" aria-live="polite">
-      Ready to play! Click below to start voice recognition.
+    <div id="msg" class="msg" aria-live="polite" role="status">
+      Ready to play! Click below to activate voice commands.
     </div>
     
-    <div id="click-prompt" class="click-prompt">
-      🎤 Click here to activate voice commands
-    </div>
+    <button id="click-prompt" class="click-prompt" aria-label="Activate voice commands">
+      🎤 Click to Start Voice Commands
+    </button>
     
     <div class="instructions">
-      <strong>Voice commands:</strong><br>
-      • "start game" - Begin a new solitaire game<br>
-      • "draw card" - Draw from the deck<br>
-      • "describe board" - Hear the current game state<br>
-      • "move card" - Move cards (demo feature)<br>
-      • "help" - List available commands<br>
-      • "quit game" - End the current game
+      <strong>Voice Commands:</strong>
+      <div class="command-list">
+        <div class="command-item">
+          <span class="command-name">"start game"</span>
+          <span>Begin a new solitaire game</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">"draw card"</span>
+          <span>Draw from the deck to waste pile</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">"describe board"</span>
+          <span>Hear the current game state</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">"move card"</span>
+          <span>Move cards between piles</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">"help"</span>
+          <span>List all available commands</span>
+        </div>
+        <div class="command-item">
+          <span class="command-name">"quit game"</span>
+          <span>End the current game</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pwa-install" id="pwa-prompt" style="display: none;">
+      💡 <strong>Tip:</strong> Add this to your home screen for the best experience!
     </div>
   </main>
 
   <script>
+    // PWA Installation
+    let deferredPrompt;
+    const pwaPrompt = document.getElementById('pwa-prompt');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      pwaPrompt.style.display = 'block';
+    });
+
+    pwaPrompt.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`PWA install prompt outcome: ${outcome}`);
+        deferredPrompt = null;
+        pwaPrompt.style.display = 'none';
+      }
+    });
+
+    // Offline detection
+    const offlineIndicator = document.getElementById('offline-indicator');
+    
+    function updateOnlineStatus() {
+      if (!navigator.onLine) {
+        offlineIndicator.classList.add('show');
+      } else {
+        offlineIndicator.classList.remove('show');
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // Main game logic
     document.addEventListener('DOMContentLoaded', () => {
       const msgEl = document.getElementById('msg');
       const container = document.getElementById('game-container');
@@ -123,6 +358,7 @@
       const clickPrompt = document.getElementById('click-prompt');
       let game = null;
       let isListening = false;
+      let gameHistory = [];
 
       // Check for speech recognition support
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -130,11 +366,14 @@
 
       const showStatus = (text, type = 'status') => {
         statusArea.innerHTML = `<div class="${type}">${text}</div>`;
-        setTimeout(() => statusArea.innerHTML = '', 3000);
+        setTimeout(() => statusArea.innerHTML = '', 4000);
       };
 
       const updateMessage = (text) => {
         msgEl.textContent = text;
+        // Announce to screen readers
+        msgEl.setAttribute('aria-live', 'assertive');
+        setTimeout(() => msgEl.setAttribute('aria-live', 'polite'), 100);
       };
 
       const speak = (text, callback) => {
@@ -142,9 +381,20 @@
         window.speechSynthesis.cancel();
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
+        utterance.rate = 0.85;
         utterance.pitch = 1;
-        utterance.volume = 0.8;
+        utterance.volume = 0.9;
+        
+        // Use a more natural voice if available
+        const voices = window.speechSynthesis.getVoices();
+        const preferredVoice = voices.find(voice => 
+          voice.name.includes('Natural') || 
+          voice.name.includes('Enhanced') ||
+          voice.name.includes('Premium')
+        );
+        if (preferredVoice) {
+          utterance.voice = preferredVoice;
+        }
         
         utterance.onend = () => {
           if (callback) callback();
@@ -165,6 +415,9 @@
           this.waste = [];
           this.foundations = [[], [], [], []];
           this.tableau = [[], [], [], [], [], [], []];
+          this.moves = 0;
+          this.score = 0;
+          this.startTime = Date.now();
           this.initializeGame();
         }
 
@@ -176,13 +429,21 @@
           this.deck = [];
           suits.forEach(suit => {
             ranks.forEach((rank, i) => {
-              this.deck.push({ suit, rank, value: i + 1, faceUp: false });
+              this.deck.push({ 
+                suit, 
+                rank, 
+                value: i + 1, 
+                faceUp: false,
+                color: suit === 'Hearts' || suit === 'Diamonds' ? 'red' : 'black'
+              });
             });
           });
           
           this.shuffle();
           this.deal();
-          speak("New solitaire game started! You have 7 columns of cards and a deck to draw from. Say 'describe board' to hear the layout, or 'draw card' to start playing.");
+          this.saveGameState();
+          
+          speak("New solitaire game started! Seven columns dealt with the top cards face up. Twenty-four cards remain in the deck. Say 'describe board' to hear the layout, or 'draw card' to begin playing.");
         }
 
         shuffle() {
@@ -208,6 +469,8 @@
         }
 
         drawCard() {
+          this.moves++;
+          
           if (this.deck.length === 0) {
             if (this.waste.length === 0) {
               speak("Both deck and waste pile are empty. No cards to draw.");
@@ -216,53 +479,60 @@
             // Reshuffle waste pile back into deck
             this.deck = this.waste.reverse().map(card => ({ ...card, faceUp: false }));
             this.waste = [];
-            speak("Deck was empty. Reshuffled waste pile back into deck.");
+            speak(`Deck was empty. Reshuffled ${this.deck.length} cards from waste pile back into deck.`);
             return;
           }
 
           const card = this.deck.pop();
           card.faceUp = true;
           this.waste.push(card);
+          this.saveGameState();
+          
           speak(`Drew the ${card.rank} of ${card.suit}. It's now on top of the waste pile.`);
         }
 
         describeBoard() {
-          let description = "Here's your current game state: ";
+          let description = "Current game state: ";
+          
+          // Game stats
+          description += `Move ${this.moves}. `;
           
           // Describe waste pile
           if (this.waste.length > 0) {
             const topWaste = this.waste[this.waste.length - 1];
-            description += `The waste pile shows ${topWaste.rank} of ${topWaste.suit}. `;
+            description += `Waste pile shows ${topWaste.rank} of ${topWaste.suit}. `;
           } else {
-            description += "The waste pile is empty. ";
+            description += "Waste pile is empty. ";
           }
           
           // Describe deck
-          description += `The deck has ${this.deck.length} cards remaining. `;
+          description += `Deck has ${this.deck.length} cards remaining. `;
           
           // Describe foundations
           description += "Foundations: ";
           const suitNames = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+          const foundationStatus = [];
           for (let i = 0; i < 4; i++) {
             if (this.foundations[i].length > 0) {
               const topCard = this.foundations[i][this.foundations[i].length - 1];
-              description += `${suitNames[i]} pile goes up to ${topCard.rank}. `;
+              foundationStatus.push(`${suitNames[i]} up to ${topCard.rank}`);
             } else {
-              description += `${suitNames[i]} pile is empty. `;
+              foundationStatus.push(`${suitNames[i]} empty`);
             }
           }
+          description += foundationStatus.join(', ') + '. ';
           
           // Describe tableau
-          description += "Tableau columns: ";
+          description += "Tableau: ";
           for (let i = 0; i < 7; i++) {
             if (this.tableau[i].length > 0) {
               const topCard = this.tableau[i][this.tableau[i].length - 1];
               const hiddenCards = this.tableau[i].filter(card => !card.faceUp).length;
               description += `Column ${i + 1} shows ${topCard.rank} of ${topCard.suit}`;
               if (hiddenCards > 0) {
-                description += ` with ${hiddenCards} hidden card${hiddenCards > 1 ? 's' : ''} below`;
+                description += ` with ${hiddenCards} hidden card${hiddenCards > 1 ? 's' : ''}`;
               }
-              description += ". ";
+              description += '. ';
             } else {
               description += `Column ${i + 1} is empty. `;
             }
@@ -272,17 +542,54 @@
         }
 
         moveCard(command) {
-          // This is a simplified move function - in a full implementation you'd parse the command
-          speak("Move feature is currently in demo mode. In the full game, you could say things like 'move red seven to black eight' or 'move ace to foundation'.");
+          // Enhanced move parsing for future implementation
+          speak("Move commands are in development. Currently, you can manually move cards by saying specific instructions like 'move red six to black seven' or 'move ace to foundation'. This feature will be enhanced in future updates.");
         }
 
         getGameStats() {
           const cardsInFoundations = this.foundations.reduce((sum, pile) => sum + pile.length, 0);
           const totalCards = 52;
+          const elapsedMinutes = Math.floor((Date.now() - this.startTime) / 60000);
+          
           return {
             foundationCards: cardsInFoundations,
-            completion: Math.round((cardsInFoundations / totalCards) * 100)
+            completion: Math.round((cardsInFoundations / totalCards) * 100),
+            moves: this.moves,
+            time: elapsedMinutes,
+            score: this.score
           };
+        }
+
+        saveGameState() {
+          try {
+            const gameState = {
+              deck: this.deck,
+              waste: this.waste,
+              foundations: this.foundations,
+              tableau: this.tableau,
+              moves: this.moves,
+              score: this.score,
+              startTime: this.startTime,
+              savedAt: Date.now()
+            };
+            localStorage.setItem('voiceSolitaireGame', JSON.stringify(gameState));
+          } catch (error) {
+            console.log('Could not save game state:', error);
+          }
+        }
+
+        loadGameState() {
+          try {
+            const saved = localStorage.getItem('voiceSolitaireGame');
+            if (saved) {
+              const gameState = JSON.parse(saved);
+              Object.assign(this, gameState);
+              return true;
+            }
+          } catch (error) {
+            console.log('Could not load game state:', error);
+          }
+          return false;
         }
       }
 
@@ -296,36 +603,49 @@
         updateMessage(`🎤 "${command}"`);
         showStatus(`Processing: ${command}`);
 
+        // Add to command history
+        gameHistory.push({ command: cmd, timestamp: Date.now() });
+
         if (cmd.includes('start') && (cmd.includes('game') || cmd.includes('new'))) {
           game = new Solitaire();
         } else if (cmd.includes('help')) {
-          speak("Here are the available commands: Start game to begin playing. Draw card to take a card from the deck. Describe board to hear the current layout. Move card for moving pieces. Quit game to stop playing.");
+          speak("Available commands: Start game to begin. Draw card to take from deck. Describe board to hear layout. Move card for transfers. Stats for progress. Save game to preserve state. Quit game to end. You can also say 'repeat' to hear the last message again.");
+        } else if (cmd.includes('repeat') || cmd.includes('say that again')) {
+          const lastMessage = msgEl.textContent;
+          speak(lastMessage);
         } else if (!game) {
-          speak("No game is currently active. Please say 'start game' first.");
+          speak("No game is currently active. Please say 'start game' to begin, or 'load game' to restore a saved game.");
+        } else if (cmd.includes('load') && cmd.includes('game')) {
+          if (game.loadGameState()) {
+            speak("Previous game loaded successfully. Say 'describe board' to hear the current state.");
+          } else {
+            speak("No saved game found. Say 'start game' to begin a new game.");
+          }
+        } else if (cmd.includes('save') && cmd.includes('game')) {
+          game.saveGameState();
+          speak("Game saved successfully. You can load it later by saying 'load game'.");
         } else if (cmd.includes('draw') && cmd.includes('card')) {
           game.drawCard();
-        } else if (cmd.includes('describe') || cmd.includes('board') || cmd.includes('status')) {
+        } else if (cmd.includes('describe') || cmd.includes('board') || cmd.includes('status') || cmd.includes('state')) {
           game.describeBoard();
         } else if (cmd.includes('move')) {
           game.moveCard(cmd);
+        } else if (cmd.includes('stats') || cmd.includes('score') || cmd.includes('progress')) {
+          const stats = game.getGameStats();
+          speak(`Current progress: ${stats.foundationCards} cards in foundations, ${stats.completion}% complete. You've made ${stats.moves} moves in ${stats.time} minutes.`);
         } else if (cmd.includes('quit') || cmd.includes('stop') || cmd.includes('end')) {
           const stats = game.getGameStats();
-          speak(`Game ended. You had ${stats.foundationCards} cards in the foundations, ${stats.completion}% complete. Say 'start game' to play again.`);
+          speak(`Game ended. Final score: ${stats.foundationCards} cards in foundations, ${stats.completion}% complete, ${stats.moves} moves in ${stats.time} minutes. Say 'start game' to play again.`);
           game = null;
-        } else if (cmd.includes('stats') || cmd.includes('score')) {
-          if (game) {
-            const stats = game.getGameStats();
-            speak(`Current progress: ${stats.foundationCards} cards in foundations, ${stats.completion}% complete.`);
-          }
         } else {
-          speak("I didn't understand that command. Say 'help' to hear the available options.");
+          speak("I didn't understand that command. Say 'help' to hear all available options, or try rephrasing your request.");
         }
       };
 
       const startListening = () => {
         if (!recognition) {
-          showStatus("Speech recognition is not supported in your browser.", "error");
-          updateMessage("Speech recognition not available. Please use a modern browser like Chrome or Edge.");
+          showStatus("Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.", "error");
+          updateMessage("Voice commands require a modern browser with speech recognition support.");
           return;
         }
 
@@ -334,10 +654,10 @@
           isListening = true;
           container.classList.add('listening');
           clickPrompt.style.display = 'none';
-          showStatus("🎤 Listening... speak your command");
+          showStatus("🎤 Listening for your command...");
         } catch (error) {
           console.error('Error starting recognition:', error);
-          showStatus("Could not start voice recognition. Please try again.", "error");
+          showStatus("Could not start voice recognition. Please check microphone permissions.", "error");
           isListening = false;
         }
       };
@@ -350,7 +670,8 @@
 
         recognition.onresult = (event) => {
           const transcript = event.results[0][0].transcript;
-          console.log('Voice command received:', transcript);
+          const confidence = event.results[0][0].confidence;
+          console.log(`Voice command: "${transcript}" (confidence: ${confidence})`);
           handleCommand(transcript);
         };
 
@@ -362,16 +683,19 @@
           let errorMessage = "Voice recognition error. ";
           switch (event.error) {
             case 'no-speech':
-              errorMessage += "No speech was detected. Please try again.";
+              errorMessage += "No speech detected. Please speak clearly and try again.";
               break;
             case 'network':
-              errorMessage += "Network error occurred.";
+              errorMessage += "Network connection required for voice recognition.";
               break;
             case 'not-allowed':
-              errorMessage += "Microphone access denied. Please enable microphone permissions.";
+              errorMessage += "Microphone access denied. Please enable microphone permissions in your browser settings.";
+              break;
+            case 'service-not-allowed':
+              errorMessage += "Speech recognition service not available.";
               break;
             default:
-              errorMessage += "Please try again.";
+              errorMessage += `Unexpected error: ${event.error}. Please try again.`;
           }
           
           showStatus(errorMessage, "error");
@@ -384,12 +708,12 @@
           clickPrompt.style.display = 'block';
           
           // Auto-restart if game is active and no error occurred
-          if (game && !recognition.lastError) {
+          if (game && !event.error) {
             setTimeout(() => {
               if (game && !isListening) {
                 startListening();
               }
-            }, 1000);
+            }, 1500);
           }
         };
 
@@ -398,33 +722,92 @@
           isListening = true;
         };
       } else {
-        showStatus("Speech recognition is not supported in this browser.", "error");
-        updateMessage("Please use Chrome, Edge, or Safari for voice commands.");
+        showStatus("Speech recognition not supported. Please use Chrome, Edge, or Safari for voice commands.", "error");
+        updateMessage("This browser doesn't support voice recognition. Please try Chrome, Edge, or Safari.");
       }
 
-      // Click handler for starting voice recognition
+      // Click handlers
       clickPrompt.addEventListener('click', () => {
         if (!isListening) {
           startListening();
         }
       });
 
-      // Also allow clicking anywhere on the container
       container.addEventListener('click', (e) => {
-        if (e.target === clickPrompt) return; // Don't double-trigger
+        if (e.target === clickPrompt) return;
         
         if (!isListening && recognition) {
           startListening();
         }
       });
 
-      // Initialize with welcome message
-      setTimeout(() => {
-        if (!game) {
-          updateMessage("Welcome to Voice Solitaire! Click to activate voice commands and say 'start game' to begin.");
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !isListening) {
+          e.preventDefault();
+          startListening();
         }
+      });
+
+      // Load voices when available
+      if ('speechSynthesis' in window) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+          console.log('Voices loaded:', speechSynthesis.getVoices().length);
+        });
+      }
+
+      // Initialize
+      setTimeout(() => {
+        updateMessage("Welcome to Voice Solitaire! This game is designed for accessibility. Click the button above or press spacebar to activate voice commands, then say 'start game' to begin.");
       }, 1000);
+
+      // Check for saved game on load
+      setTimeout(() => {
+        try {
+          const saved = localStorage.getItem('voiceSolitaireGame');
+          if (saved) {
+            showStatus("Previous game found. Say 'load game' to continue or 'start game' for a new game.");
+          }
+        } catch (error) {
+          // Silent fail - localStorage not available
+        }
+      }, 3000);
     });
+
+    // Register service worker if available
+    if ('serviceWorker' in navigator) {
+      // Create a simple service worker inline for basic caching
+      const swCode = `
+        const CACHE_NAME = 'voice-solitaire-v1';
+        
+        self.addEventListener('install', event => {
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(cache => {
+              return cache.addAll(['/']);
+            })
+          );
+        });
+        
+        self.addEventListener('fetch', event => {
+          event.respondWith(
+            caches.match(event.request).then(response => {
+              return response || fetch(event.request);
+            })
+          );
+        });
+      `;
+      
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      
+      navigator.serviceWorker.register(swUrl)
+        .then(registration => {
+          console.log('✅ Service Worker registered successfully');
+        })
+        .catch(error => {
+          console.log('❌ Service Worker registration failed:', error);
+        });
+    }
   </script>
 </body>
-</html>
+  </html>
