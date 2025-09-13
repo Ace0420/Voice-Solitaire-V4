@@ -18,6 +18,3 @@ A voice-first, blind-friendly browser game built for Android 13 and TalkBack. Fu
 - Save/load game state via localStorage
 - Mythic narrator personas for onboarding
 
----
-
-Built by Ace & Copilot — mythic systems, resilient design.
