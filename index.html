@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Solitaire</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111827;
+      color: #fff;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 420px;
+      width: 100%;
+      margin-top: 3em;
+      padding: 2em;
+      background: #222;
+      border-radius: 1em;
+      box-shadow: 0 0 24px #0007;
+      transition: box-shadow 0.3s ease;
+    }
+    .container.listening {
+      box-shadow: 0 0 24px #3b82f6;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 24px #3b82f6; }
+      50% { box-shadow: 0 0 36px #60a5fa; }
+      100% { box-shadow: 0 0 24px #3b82f6; }
+    }
+    .center { text-align: center; }
+    .msg {
+      background: #1f2937;
+      padding: 1em;
+      border-radius: 0.5em;
+      margin-bottom: 1em;
+      font-size: 1.1em;
+      min-height: 3em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .instructions {
+      color: #9ca3af;
+      font-size: 0.9em;
+      margin-top: 1em;
+      line-height: 1.4;
+    }
+    .status {
+      background: #065f46;
+      color: #10b981;
+      padding: 0.5em 1em;
+      border-radius: 0.5em;
+      margin-bottom: 1em;
+      font-size: 0.9em;
+    }
+    .error {
+      background: #7f1d1d;
+      color: #f87171;
+      padding: 0.5em 1em;
+      border-radius: 0.5em;
+      margin-bottom: 1em;
+      font-size: 0.9em;
+    }
+    .click-prompt {
+      background: #1e40af;
+      color: #93c5fd;
+      padding: 1em;
+      border-radius: 0.5em;
+      margin-bottom: 1em;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .click-prompt:hover {
+      background: #1d4ed8;
+    }
+    @media (max-width: 480px) {
+      .container { 
+        padding: 1em; 
+        margin-top: 1em;
+      }
+      .msg { font-size: 1em; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container center" role="main" id="game-container">
+    <h1>🎴 Voice Solitaire</h1>
+    
+    <div id="status-area"></div>
+    
+    <div id="msg" class="msg" aria-live="polite">
+      Ready to play! Click below to start voice recognition.
+    </div>
+    
+    <div id="click-prompt" class="click-prompt">
+      🎤 Click here to activate voice commands
+    </div>
+    
+    <div class="instructions">
+      <strong>Voice commands:</strong><br>
+      • "start game" - Begin a new solitaire game<br>
+      • "draw card" - Draw from the deck<br>
+      • "describe board" - Hear the current game state<br>
+      • "move card" - Move cards (demo feature)<br>
+      • "help" - List available commands<br>
+      • "quit game" - End the current game
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const msgEl = document.getElementById('msg');
+      const container = document.getElementById('game-container');
+      const statusArea = document.getElementById('status-area');
+      const clickPrompt = document.getElementById('click-prompt');
+      let game = null;
+      let isListening = false;
+
+      // Check for speech recognition support
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+      const showStatus = (text, type = 'status') => {
+        statusArea.innerHTML = `<div class="${type}">${text}</div>`;
+        setTimeout(() => statusArea.innerHTML = '', 3000);
+      };
+
+      const updateMessage = (text) => {
+        msgEl.textContent = text;
+      };
+
+      const speak = (text, callback) => {
+        // Stop any ongoing speech
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 0.8;
+        
+        utterance.onend = () => {
+          if (callback) callback();
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          if (callback) callback();
+        };
+        
+        window.speechSynthesis.speak(utterance);
+        updateMessage(text);
+      };
+
+      class Solitaire {
+        constructor() {
+          this.deck = [];
+          this.waste = [];
+          this.foundations = [[], [], [], []];
+          this.tableau = [[], [], [], [], [], [], []];
+          this.initializeGame();
+        }
+
+        initializeGame() {
+          const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+          const ranks = ['Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King'];
+          
+          // Create deck
+          this.deck = [];
+          suits.forEach(suit => {
+            ranks.forEach((rank, i) => {
+              this.deck.push({ suit, rank, value: i + 1, faceUp: false });
+            });
+          });
+          
+          this.shuffle();
+          this.deal();
+          speak("New solitaire game started! You have 7 columns of cards and a deck to draw from. Say 'describe board' to hear the layout, or 'draw card' to start playing.");
+        }
+
+        shuffle() {
+          for (let i = this.deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+          }
+        }
+
+        deal() {
+          // Deal cards to tableau (7 columns, increasing number of cards)
+          for (let col = 0; col < 7; col++) {
+            for (let row = 0; row <= col; row++) {
+              if (this.deck.length > 0) {
+                this.tableau[col].push(this.deck.pop());
+              }
+            }
+            // Flip the top card of each column
+            if (this.tableau[col].length > 0) {
+              this.tableau[col][this.tableau[col].length - 1].faceUp = true;
+            }
+          }
+        }
+
+        drawCard() {
+          if (this.deck.length === 0) {
+            if (this.waste.length === 0) {
+              speak("Both deck and waste pile are empty. No cards to draw.");
+              return;
+            }
+            // Reshuffle waste pile back into deck
+            this.deck = this.waste.reverse().map(card => ({ ...card, faceUp: false }));
+            this.waste = [];
+            speak("Deck was empty. Reshuffled waste pile back into deck.");
+            return;
+          }
+
+          const card = this.deck.pop();
+          card.faceUp = true;
+          this.waste.push(card);
+          speak(`Drew the ${card.rank} of ${card.suit}. It's now on top of the waste pile.`);
+        }
+
+        describeBoard() {
+          let description = "Here's your current game state: ";
+          
+          // Describe waste pile
+          if (this.waste.length > 0) {
+            const topWaste = this.waste[this.waste.length - 1];
+            description += `The waste pile shows ${topWaste.rank} of ${topWaste.suit}. `;
+          } else {
+            description += "The waste pile is empty. ";
+          }
+          
+          // Describe deck
+          description += `The deck has ${this.deck.length} cards remaining. `;
+          
+          // Describe foundations
+          description += "Foundations: ";
+          const suitNames = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+          for (let i = 0; i < 4; i++) {
+            if (this.foundations[i].length > 0) {
+              const topCard = this.foundations[i][this.foundations[i].length - 1];
+              description += `${suitNames[i]} pile goes up to ${topCard.rank}. `;
+            } else {
+              description += `${suitNames[i]} pile is empty. `;
+            }
+          }
+          
+          // Describe tableau
+          description += "Tableau columns: ";
+          for (let i = 0; i < 7; i++) {
+            if (this.tableau[i].length > 0) {
+              const topCard = this.tableau[i][this.tableau[i].length - 1];
+              const hiddenCards = this.tableau[i].filter(card => !card.faceUp).length;
+              description += `Column ${i + 1} shows ${topCard.rank} of ${topCard.suit}`;
+              if (hiddenCards > 0) {
+                description += ` with ${hiddenCards} hidden card${hiddenCards > 1 ? 's' : ''} below`;
+              }
+              description += ". ";
+            } else {
+              description += `Column ${i + 1} is empty. `;
+            }
+          }
+
+          speak(description);
+        }
+
+        moveCard(command) {
+          // This is a simplified move function - in a full implementation you'd parse the command
+          speak("Move feature is currently in demo mode. In the full game, you could say things like 'move red seven to black eight' or 'move ace to foundation'.");
+        }
+
+        getGameStats() {
+          const cardsInFoundations = this.foundations.reduce((sum, pile) => sum + pile.length, 0);
+          const totalCards = 52;
+          return {
+            foundationCards: cardsInFoundations,
+            completion: Math.round((cardsInFoundations / totalCards) * 100)
+          };
+        }
+      }
+
+      const handleCommand = (command) => {
+        if (!command || command.trim() === '') {
+          speak("I didn't hear a clear command. Please try again.");
+          return;
+        }
+
+        const cmd = command.toLowerCase().trim();
+        updateMessage(`🎤 "${command}"`);
+        showStatus(`Processing: ${command}`);
+
+        if (cmd.includes('start') && (cmd.includes('game') || cmd.includes('new'))) {
+          game = new Solitaire();
+        } else if (cmd.includes('help')) {
+          speak("Here are the available commands: Start game to begin playing. Draw card to take a card from the deck. Describe board to hear the current layout. Move card for moving pieces. Quit game to stop playing.");
+        } else if (!game) {
+          speak("No game is currently active. Please say 'start game' first.");
+        } else if (cmd.includes('draw') && cmd.includes('card')) {
+          game.drawCard();
+        } else if (cmd.includes('describe') || cmd.includes('board') || cmd.includes('status')) {
+          game.describeBoard();
+        } else if (cmd.includes('move')) {
+          game.moveCard(cmd);
+        } else if (cmd.includes('quit') || cmd.includes('stop') || cmd.includes('end')) {
+          const stats = game.getGameStats();
+          speak(`Game ended. You had ${stats.foundationCards} cards in the foundations, ${stats.completion}% complete. Say 'start game' to play again.`);
+          game = null;
+        } else if (cmd.includes('stats') || cmd.includes('score')) {
+          if (game) {
+            const stats = game.getGameStats();
+            speak(`Current progress: ${stats.foundationCards} cards in foundations, ${stats.completion}% complete.`);
+          }
+        } else {
+          speak("I didn't understand that command. Say 'help' to hear the available options.");
+        }
+      };
+
+      const startListening = () => {
+        if (!recognition) {
+          showStatus("Speech recognition is not supported in your browser.", "error");
+          updateMessage("Speech recognition not available. Please use a modern browser like Chrome or Edge.");
+          return;
+        }
+
+        try {
+          recognition.start();
+          isListening = true;
+          container.classList.add('listening');
+          clickPrompt.style.display = 'none';
+          showStatus("🎤 Listening... speak your command");
+        } catch (error) {
+          console.error('Error starting recognition:', error);
+          showStatus("Could not start voice recognition. Please try again.", "error");
+          isListening = false;
+        }
+      };
+
+      if (recognition) {
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          console.log('Voice command received:', transcript);
+          handleCommand(transcript);
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+          isListening = false;
+          container.classList.remove('listening');
+          
+          let errorMessage = "Voice recognition error. ";
+          switch (event.error) {
+            case 'no-speech':
+              errorMessage += "No speech was detected. Please try again.";
+              break;
+            case 'network':
+              errorMessage += "Network error occurred.";
+              break;
+            case 'not-allowed':
+              errorMessage += "Microphone access denied. Please enable microphone permissions.";
+              break;
+            default:
+              errorMessage += "Please try again.";
+          }
+          
+          showStatus(errorMessage, "error");
+          clickPrompt.style.display = 'block';
+        };
+
+        recognition.onend = () => {
+          isListening = false;
+          container.classList.remove('listening');
+          clickPrompt.style.display = 'block';
+          
+          // Auto-restart if game is active and no error occurred
+          if (game && !recognition.lastError) {
+            setTimeout(() => {
+              if (game && !isListening) {
+                startListening();
+              }
+            }, 1000);
+          }
+        };
+
+        recognition.onstart = () => {
+          console.log('Voice recognition started');
+          isListening = true;
+        };
+      } else {
+        showStatus("Speech recognition is not supported in this browser.", "error");
+        updateMessage("Please use Chrome, Edge, or Safari for voice commands.");
+      }
+
+      // Click handler for starting voice recognition
+      clickPrompt.addEventListener('click', () => {
+        if (!isListening) {
+          startListening();
+        }
+      });
+
+      // Also allow clicking anywhere on the container
+      container.addEventListener('click', (e) => {
+        if (e.target === clickPrompt) return; // Don't double-trigger
+        
+        if (!isListening && recognition) {
+          startListening();
+        }
+      });
+
+      // Initialize with welcome message
+      setTimeout(() => {
+        if (!game) {
+          updateMessage("Welcome to Voice Solitaire! Click to activate voice commands and say 'start game' to begin.");
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
